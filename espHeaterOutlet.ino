@@ -25,8 +25,18 @@ ESP8266WiFiMulti WiFiMulti;
 volatile float tempF = 50;
 volatile int hour = 0;
 volatile bool heaterOn = false;
+volatile int buttonPressMillis = 0;
 
-static esp8266::polledTimeout::periodicMs showTimeNow(60000);
+static esp8266::polledTimeout::periodicMs showTimeNow(300000);
+
+void ICACHE_RAM_ATTR btnClick(void) {
+  if(buttonPressMillis + 200 < millis()) {
+    heaterOn ^= 1;
+    digitalWrite(12, heaterOn);   // turn relay to toggled setting 
+    Serial.print(heaterOn);
+    buttonPressMillis = millis();
+  }
+}
 
 void deser(String payload) {
   DynamicJsonDocument doc(1024);
@@ -107,6 +117,11 @@ void decide() {
     }
     break;
   case 4: 
+    if(tempF <= 15 && !heaterOn) {   
+      digitalWrite(12, HIGH);   // turn relay on
+      heaterOn = true;
+    }
+    break;
   case 5: 
     if(tempF <= 20 && !heaterOn) {   
       digitalWrite(12, HIGH);   // turn relay on
@@ -114,6 +129,11 @@ void decide() {
     }
     break;
   case 6: 
+    if(tempF <= 25 && !heaterOn) {   
+      digitalWrite(12, HIGH);   // turn relay on
+      heaterOn = true;
+    }
+    break;
   case 7: 
     if(tempF <= 30 && !heaterOn) {   
       digitalWrite(12, HIGH);   // turn relay on
@@ -121,6 +141,11 @@ void decide() {
     }
     break;
   case 8: 
+    if(tempF <= 35 && !heaterOn) {   
+      digitalWrite(12, HIGH);   // turn relay on
+      heaterOn = true;
+    }
+    break;
   case 9: 
     if(tempF <= 40 && !heaterOn) {   
       digitalWrite(12, HIGH);   // turn relay on
@@ -134,7 +159,6 @@ void decide() {
     }
     break; 
   }
-
   
   Serial.print("temp:");
   Serial.print(tempF);
@@ -150,6 +174,7 @@ void setup() {
   Serial.begin(115200);
   // Serial.setDebugOutput(true);
   pinMode(12, OUTPUT); //relay output
+  pinMode(0, INPUT); //GPIO0
 
   setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0", 1);
   tzset();
@@ -168,6 +193,8 @@ void setup() {
   WiFiMulti.addAP("SSID", "PASS");
 
   configTime(0, 0, "pool.ntp.org");
+
+  attachInterrupt(digitalPinToInterrupt(0), btnClick, FALLING);
 }
 
 void loop() {
